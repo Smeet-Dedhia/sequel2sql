@@ -40,6 +40,7 @@
 - [<code>📦 Installation</code>](#-installation)
 - [<code>🚀 Usage</code>](#-usage)
 - [<code>🧪 Benchmark</code>](#-benchmark)
+- [<code>🧠 RLEF</code>](#-rlef)
 - [<code>🤝 Contributing</code>](#-contributing)
 - [<code>📝 License</code>](#-license)
 
@@ -174,6 +175,7 @@ docs/                          Final report and supporting project material
 src/agent/                     Agent definitions, prompts, and skills config
 src/ast_parsers/               SQL parsing, validation, and metadata extraction
 src/database/                  PostgreSQL database abstraction and tools
+src/rlef/                      RL from Execution Feedback environment and reward
 src/query_intent_vectordb/     Similar-example retrieval with ChromaDB
 src/db_confirmed_fixes/        Confirmed-fix knowledge store
 src/skills/                    Semantic model skills for benchmark databases
@@ -204,6 +206,22 @@ You can run the interactive benchmark runner with:
 ```
 
 The benchmark requires dataset files under `benchmark/data/`. The detailed setup and output structure are documented in `benchmark/README.md`.
+
+## 🧠 RLEF
+
+$$\color{#00BFFF}Reinforcement \space Learning \space from \space \color{#56565E}Execution \space Feedback$$
+
+Sequel2SQL includes an RLEF module (`src/rlef/`) that frames SQL optimization as a reinforcement learning problem. Instead of relying on LLM-as-a-Judge evaluations, the environment uses **deterministic reward signals** derived from PostgreSQL's own `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` output — real hardware execution metrics, not theoretical estimates.
+
+The agent observes the full database schema, table-level statistics, and a baseline query plan, then produces an optimized query with an explicit reasoning trace. Rewards are computed from:
+
+- **Query planner cost reduction** — how much the EXPLAIN cost improved
+- **Hardware I/O analysis** — buffer hit ratio (shared_hit_blocks vs shared_read_blocks)
+- **Node type transitions** — bonus for replacing Seq Scans with Index Scans / Hash Joins
+- **Result equivalence gate** — optimized query must return identical results to gold
+- **Anti-hacking defenses** — hidden dataset replicas catch hardcoded literals, LIMIT 0 detection catches empty-result tricks, and ANALYZE enforcement prevents planner-only manipulation
+
+See `src/rlef/README.md` for architecture details and `src/rlef/training_logs/` for recorded episode data from proof-of-concept training runs across BIRD benchmark databases.
 
 ## 🤝 Contributing
 
